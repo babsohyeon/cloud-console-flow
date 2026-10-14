@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cloud Console 시나리오별 요청 플로우</title>
+<style>
+:root {
+  --bg: #ffffff;
+  --surface-0: #f8f9fa;
+  --surface-1: #ffffff;
+  --border: #d1d5db;
+  --border-strong: #9ca3af;
+  --border-accent: #6366f1;
+  --text-primary: #111827;
+  --text-secondary: #6b7280;
+  --text-muted: #9ca3af;
+  --text-accent: #4f46e5;
+  --bg-accent: #eef2ff;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background: #f3f4f6;
+  min-height: 100vh;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 24px;
+}
+.container {
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+  padding: 24px;
+  max-width: 1300px;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+h1 { font-size: 18px; font-weight: 600; color: #111827; margin-bottom: 4px; }
+.subtitle { font-size: 13px; color: #6b7280; margin-bottom: 4px; }
+.cats { display: flex; gap: 6px; flex-wrap: wrap; }
+.cat {
+  font-size: 12px; padding: 5px 12px; border-radius: 8px;
+  border: 1px solid #d1d5db; background: #f8f9fa;
+  color: #6b7280; cursor: pointer;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  transition: all .15s;
+}
+.cat:hover { border-color: #9ca3af; color: #111827; }
+.cat.on { background: #111827; color: #fff; border-color: #111827; }
+.scs { display: flex; gap: 5px; flex-wrap: wrap; }
+.sc {
+  font-size: 12px; padding: 4px 10px; border-radius: 6px;
+  border: 1px solid #d1d5db; background: #f8f9fa;
+  color: #6b7280; cursor: pointer;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  transition: all .15s;
+}
+.sc:hover { border-color: #9ca3af; color: #111827; }
+.sc.on { background: #eef2ff; border-color: #6366f1; color: #4f46e5; font-weight: 500; }
+.rcard {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 14px; border-radius: 10px;
+  background: #f8f9fa; border: 1px solid #d1d5db;
+}
+.rlabel {
+  font-size: 12px; font-weight: 500; color: #4f46e5;
+  background: #eef2ff; border: 1px solid #6366f1;
+  padding: 2px 10px; border-radius: 6px; white-space: nowrap; flex-shrink: 0;
+}
+.rdesc { font-size: 12px; color: #6b7280; line-height: 1.5; }
+.legend { display: flex; gap: 12px; flex-wrap: wrap; font-size: 11px; color: #6b7280; }
+.leg { display: flex; align-items: center; gap: 5px; }
+.ld { width: 12px; height: 3px; border-radius: 2px; flex-shrink: 0; }
+.steps { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.step {
+  font-size: 12px; padding: 7px 10px; border-radius: 8px;
+  border: 1px solid #6366f1; color: #111827;
+  background: #eef2ff; display: flex; align-items: flex-start;
+  gap: 8px; line-height: 1.5;
+}
+.sn {
+  min-width: 20px; height: 20px; border-radius: 50%; font-size: 10px;
+  font-weight: 600; display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0; background: #4f46e5; color: white; margin-top: 1px;
+}
+svg { width: 100%; }
+@media (max-width: 600px) { .steps { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<div class="container">
+  <div>
+    <h1>Cloud Console 시나리오별 요청 플로우</h1>
+    <p class="subtitle">카테고리와 시나리오를 선택하면 해당 요청 플로우가 하이라이트 됩니다.</p>
+  </div>
+  <div class="cats" id="cats"></div>
+  <div class="scs" id="scs"></div>
+  <div class="rcard"><span class="rlabel" id="rlabel"></span><span class="rdesc" id="rdesc"></span></div>
+  <div class="legend">
+    <span class="leg"><span class="ld" style="background:#378ADD"></span>요청 흐름</span>
+    <span class="leg"><span class="ld" style="background:#10B981"></span>캐시</span>
+    <span class="leg"><span class="ld" style="background:#639922"></span>DB</span>
+    <span class="leg"><span class="ld" style="background:#BA7517"></span>외부 API</span>
+    <span class="leg"><span class="ld" style="background:#534AB7"></span>스케줄러</span>
+    <span class="leg"><span class="ld" style="background:#D4537E"></span>이메일</span>
+    <span class="leg" style="white-space:nowrap"><svg width="18" height="8" style="vertical-align:middle"><line x1="0" y1="4" x2="18" y2="4" stroke="#9ca3af" stroke-width="1.5" stroke-dasharray="4 2"/></svg> 컨테이너 경계</span>
+  </div>
+  <svg viewBox="0 0 920 510" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <marker id="ah" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+        <path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+      </marker>
+    </defs>
+
+    <!-- 컨테이너 경계 -->
+    <rect x="4" y="200" width="96" height="60" rx="10" fill="none" stroke="#9ca3af" stroke-width="1" stroke-dasharray="4 3" opacity="0.5"/>
+    <text x="9" y="213" style="font-size:8.5px;fill:#9ca3af">Browser</text>
+
+    <rect x="112" y="192" width="126" height="92" rx="10" fill="none" stroke="#378ADD" stroke-width="1.2" stroke-dasharray="5 3" opacity="0.6"/>
+    <rect x="118" y="188" width="106" height="12" rx="4" fill="#f3f4f6"/>
+    <text x="121" y="198" style="font-size:8.5px;fill:#378ADD;font-weight:500">📦 Frontend Container</text>
+
+    <rect x="278" y="108" width="154" height="308" rx="10" fill="none" stroke="#534AB7" stroke-width="1.2" stroke-dasharray="5 3" opacity="0.6"/>
+    <rect x="284" y="104" width="120" height="12" rx="4" fill="#f3f4f6"/>
+    <text x="287" y="114" style="font-size:8.5px;fill:#534AB7;font-weight:500">📦 Backend Container</text>
+
+    <rect x="668" y="56" width="216" height="68" rx="10" fill="none" stroke="#10B981" stroke-width="1.2" stroke-dasharray="5 3" opacity="0.6"/>
+    <rect x="675" y="52" width="112" height="12" rx="4" fill="#f3f4f6"/>
+    <text x="678" y="62" style="font-size:8.5px;fill:#10B981;font-weight:500">📦 Redis Container</text>
+
+    <rect x="668" y="152" width="216" height="68" rx="10" fill="none" stroke="#639922" stroke-width="1.2" stroke-dasharray="5 3" opacity="0.6"/>
+    <rect x="675" y="148" width="140" height="12" rx="4" fill="#f3f4f6"/>
+    <text x="678" y="158" style="font-size:8.5px;fill:#639922;font-weight:500">📦 PostgreSQL Container</text>
+
+    <rect x="668" y="248" width="216" height="222" rx="10" fill="none" stroke="#BA7517" stroke-width="1" stroke-dasharray="4 3" opacity="0.45"/>
+    <rect x="675" y="244" width="122" height="12" rx="4" fill="#f3f4f6"/>
+    <text x="678" y="254" style="font-size:8.5px;fill:#BA7517;font-weight:500">🌐 외부 서비스 (External)</text>
+
+    <!-- 화살표 -->
+    <path id="a-ur"  fill="none" style="transition:all .3s;stroke:#d1d5db;stroke-width:1;marker-end:url(#ah)" d="M100,240 L125,240"/>
+    <path id="a-rf"  fill="none" style="transition:all .3s;stroke:#d1d5db;stroke-width:1;marker-end:url(#ah)" d="M238,240 L290,240"/>
+    <path id="a-fr"  fill="none" style="transition:all .3s;stroke:#d1d5db;stroke-width:1;marker-end:url(#ah)" d="M420,175 L645,175 L645,95 L680,95"/>
+    <path id="a-fp"  fill="none" style="transition:all .3s;stroke:#d1d5db;stroke-width:1;marker-end:url(#ah)" d="M420,215 L680,190"/>
+    <path id="a-fn"  fill="none" style="transition:all .3s;stroke:#d1d5db;stroke-width:1;marker-end:url(#ah)" d="M420,245 L645,245 L645,290 L680,290"/>
+    <path id="a-fv"  fill="none" style="transition:all .3s;stroke:#d1d5db;stroke-width:1;marker-end:url(#ah)" d="M420,255 L651,255 L651,368 L680,368"/>
+    <path id="a-fe"  fill="none" style="transition:all .3s;stroke:#d1d5db;stroke-width:1;marker-end:url(#ah)" d="M420,263 L658,263 L658,445 L680,445"/>
+    <path id="a-sf"  fill="none" style="transition:all .3s;stroke:#d1d5db;stroke-width:1;marker-end:url(#ah)" d="M355,355 L355,315"/>
+    <path id="a-sv"  fill="none" style="transition:all .3s;stroke:#d1d5db;stroke-width:1;marker-end:url(#ah)" d="M420,378 L680,378"/>
+    <path id="a-ret" fill="none" stroke-dasharray="5 3" style="transition:all .3s;stroke:#d1d5db;stroke-width:1;marker-end:url(#ah)" d="M680,115 L636,115 L636,215 L420,215"/>
+
+    <!-- 사용자 -->
+    <g id="b-user" style="transition:opacity .3s">
+      <rect x="10" y="220" width="80" height="40" rx="8" style="fill:#fff;stroke:#9ca3af;stroke-width:1;transition:all .3s"/>
+      <text x="50" y="244" text-anchor="middle" style="font-size:12px;font-weight:500;fill:#111827">User</text>
+    </g>
+    <!-- React -->
+    <g id="b-react" style="transition:opacity .3s">
+      <rect x="126" y="215" width="105" height="50" rx="8" style="fill:#fff;stroke:#9ca3af;stroke-width:1;transition:all .3s"/>
+      <text x="178" y="236" text-anchor="middle" style="font-size:12px;font-weight:500;fill:#111827">React SPA</text>
+      <text x="178" y="251" text-anchor="middle" style="font-size:10px;fill:#6b7280">Nginx · static files</text>
+      <rect x="198" y="205" width="26" height="14" rx="3" fill="#f3f4f6" stroke="#d1d5db" stroke-width="0.8"/>
+      <text x="211" y="215.5" text-anchor="middle" style="font-size:8px;fill:#6b7280;font-weight:500">:80</text>
+    </g>
+    <!-- FastAPI -->
+    <g id="b-fastapi" style="transition:opacity .3s">
+      <rect x="290" y="145" width="130" height="165" rx="8" style="fill:#fff;stroke:#9ca3af;stroke-width:1;transition:all .3s"/>
+      <text x="355" y="163" text-anchor="middle" style="font-size:12px;font-weight:500;fill:#111827">FastAPI</text>
+      <text x="355" y="177" text-anchor="middle" style="font-size:10px;fill:#6b7280">Python 3.11</text>
+      <rect x="390" y="135" width="34" height="14" rx="3" fill="#f3f4f6" stroke="#d1d5db" stroke-width="0.8"/>
+      <text x="407" y="145.5" text-anchor="middle" style="font-size:8px;fill:#6b7280;font-weight:500">:8000</text>
+      <line x1="298" y1="185" x2="412" y2="185" style="stroke:#e5e7eb;stroke-width:0.5"/>
+      <circle id="rd-auth"      cx="302" cy="197" r="3.5" style="fill:#9ca3af;transition:all .3s"/>
+      <text   id="r-auth"       x="312"  y="201" style="font-size:11px;fill:#9ca3af;transition:all .3s">auth</text>
+      <circle id="rd-accounts"  cx="302" cy="213" r="3.5" style="fill:#9ca3af;transition:all .3s"/>
+      <text   id="r-accounts"   x="312"  y="217" style="font-size:11px;fill:#9ca3af;transition:all .3s">accounts</text>
+      <circle id="rd-resources" cx="302" cy="229" r="3.5" style="fill:#9ca3af;transition:all .3s"/>
+      <text   id="r-resources"  x="312"  y="233" style="font-size:11px;fill:#9ca3af;transition:all .3s">resources</text>
+      <circle id="rd-billing"   cx="302" cy="245" r="3.5" style="fill:#9ca3af;transition:all .3s"/>
+      <text   id="r-billing"    x="312"  y="249" style="font-size:11px;fill:#9ca3af;transition:all .3s">billing</text>
+      <circle id="rd-reports"   cx="302" cy="261" r="3.5" style="fill:#9ca3af;transition:all .3s"/>
+      <text   id="r-reports"    x="312"  y="265" style="font-size:11px;fill:#9ca3af;transition:all .3s">reports</text>
+      <circle id="rd-audit"     cx="302" cy="277" r="3.5" style="fill:#9ca3af;transition:all .3s"/>
+      <text   id="r-audit"      x="312"  y="281" style="font-size:11px;fill:#9ca3af;transition:all .3s">audit</text>
+      <circle id="rd-users"     cx="302" cy="293" r="3.5" style="fill:#9ca3af;transition:all .3s"/>
+      <text   id="r-users"      x="312"  y="297" style="font-size:11px;fill:#9ca3af;transition:all .3s">users</text>
+      <line x1="298" y1="303" x2="412" y2="303" style="stroke:#e5e7eb;stroke-width:0.5"/>
+      <text x="355" y="313" text-anchor="middle" style="font-size:9px;fill:#6b7280">JWT · 역할 분리 (공통)</text>
+    </g>
+    <!-- APScheduler -->
+    <g id="b-sched" style="transition:opacity .3s">
+      <rect x="290" y="355" width="130" height="44" rx="8" style="fill:#fff;stroke:#9ca3af;stroke-width:1;transition:all .3s"/>
+      <text x="355" y="374" text-anchor="middle" style="font-size:12px;font-weight:500;fill:#111827">APScheduler</text>
+      <text x="355" y="388" text-anchor="middle" style="font-size:10px;fill:#6b7280">09:00 · 50분 · 4분 주기</text>
+    </g>
+    <!-- Redis -->
+    <g id="b-redis" style="transition:opacity .3s">
+      <rect x="680" y="70" width="190" height="40" rx="8" style="fill:#fff;stroke:#9ca3af;stroke-width:1;transition:all .3s"/>
+      <text x="775" y="91" text-anchor="middle" style="font-size:12px;font-weight:500;fill:#111827">Redis</text>
+      <text x="775" y="104" text-anchor="middle" style="font-size:10px;fill:#6b7280">TTL cache (billing · resources)</text>
+      <rect x="833" y="60" width="34" height="14" rx="3" fill="#f3f4f6" stroke="#d1d5db" stroke-width="0.8"/>
+      <text x="850" y="70.5" text-anchor="middle" style="font-size:8px;fill:#6b7280;font-weight:500">:6379</text>
+    </g>
+    <!-- PostgreSQL -->
+    <g id="b-postgres" style="transition:opacity .3s">
+      <rect x="680" y="166" width="190" height="40" rx="8" style="fill:#fff;stroke:#9ca3af;stroke-width:1;transition:all .3s"/>
+      <text x="775" y="187" text-anchor="middle" style="font-size:12px;font-weight:500;fill:#111827">PostgreSQL</text>
+      <text x="775" y="200" text-anchor="middle" style="font-size:10px;fill:#6b7280">accounts · billing · audit</text>
+      <rect x="833" y="156" width="34" height="14" rx="3" fill="#f3f4f6" stroke="#d1d5db" stroke-width="0.8"/>
+      <text x="850" y="166.5" text-anchor="middle" style="font-size:8px;fill:#6b7280;font-weight:500">:5432</text>
+    </g>
+    <!-- NCP API -->
+    <g id="b-ncp" style="transition:opacity .3s">
+      <rect x="680" y="268" width="190" height="40" rx="8" style="fill:#fff;stroke:#9ca3af;stroke-width:1;transition:all .3s"/>
+      <text x="775" y="289" text-anchor="middle" style="font-size:12px;font-weight:500;fill:#111827">NCP API</text>
+      <text x="775" y="302" text-anchor="middle" style="font-size:10px;fill:#6b7280">Server · Storage · NAS</text>
+    </g>
+    <!-- VOD CMS -->
+    <g id="b-vod" style="transition:opacity .3s">
+      <rect x="680" y="355" width="190" height="40" rx="8" style="fill:#fff;stroke:#9ca3af;stroke-width:1;transition:all .3s"/>
+      <text x="775" y="376" text-anchor="middle" style="font-size:12px;font-weight:500;fill:#111827">VOD CMS API</text>
+      <text x="775" y="389" text-anchor="middle" style="font-size:10px;fill:#6b7280">Global Edge</text>
+    </g>
+    <!-- Email API -->
+    <g id="b-email" style="transition:opacity .3s">
+      <rect x="680" y="430" width="190" height="40" rx="8" style="fill:#fff;stroke:#9ca3af;stroke-width:1;transition:all .3s"/>
+      <text x="775" y="451" text-anchor="middle" style="font-size:12px;font-weight:500;fill:#111827">Email API</text>
+      <text x="775" y="464" text-anchor="middle" style="font-size:10px;fill:#6b7280">견적서 · 사용자 초대</text>
+    </g>
+  </svg>
+  <div class="steps" id="steps"></div>
+</div>
+
+<script>
+const BC={'b-user':'#378ADD','b-react':'#378ADD','b-fastapi':'#534AB7','b-sched':'#534AB7','b-redis':'#10B981','b-postgres':'#639922','b-ncp':'#BA7517','b-vod':'#BA7517','b-email':'#D4537E'};
+const ALL_B=Object.keys(BC);
+const ALL_A=['a-ur','a-rf','a-fr','a-fp','a-fn','a-fv','a-fe','a-sf','a-sv','a-ret'];
+const ALL_R=['auth','accounts','resources','billing','reports','audit','users'];
+const RI={
+  auth:{label:'auth router',desc:'JWT 토큰 발급 · 비밀번호 검증 · 만료 시 401 반환 · 로그인 이력 저장'},
+  accounts:{label:'accounts router',desc:'계정 CRUD · API Key 등록/갱신 · NCP API 유효성 검증 · 담당자 배정'},
+  resources:{label:'resources router',desc:'NCP API 병렬 호출 (asyncio.gather · Semaphore 10) · 리소스 조회 및 제어 · Redis 캐싱 TTL 5분'},
+  billing:{label:'billing router',desc:'VOD CMS 청구 집계 · APScheduler 연동 · Redis 캐싱 (현재월 5분 / 이전월 24h)'},
+  reports:{label:'reports router',desc:'ReportLab(PDF) · python-docx(DOCX) · 차트 포함 파일 생성 · 스트림 다운로드'},
+  audit:{label:'audit router',desc:'모든 작업 이력 자동 기록 · 수행자 · 일시 · 대상 · 결과 · 기간/계정 필터 조회'},
+  users:{label:'users router',desc:'역할 관리 (관리자/운영자/열람자) · 사용자 초대 · 임시 토큰 발급 · 권한 분리'},
+};
+const C=[
+  {n:'인증',sc:[
+    {n:'로그인',r:'auth',b:['b-user','b-react','b-fastapi','b-postgres'],a:[{id:'a-ur',c:'#378ADD'},{id:'a-rf',c:'#378ADD'},{id:'a-fp',c:'#639922'}],s:['사용자 → ID/PW 입력 후 로그인','React → POST /api/auth/login','FastAPI auth router → PostgreSQL 사용자 조회','비밀번호 검증 → JWT 토큰 발급','React → 토큰 저장 → 대시보드 이동']},
+    {n:'토큰 만료',r:'auth',b:['b-user','b-react','b-fastapi'],a:[{id:'a-ur',c:'#378ADD'},{id:'a-rf',c:'#378ADD'}],s:['API 요청 → FastAPI 401 Unauthorized 반환','FastAPI auth 미들웨어 → JWT 만료 감지','React → 로컬스토리지 토큰 삭제','로그인 페이지로 자동 이동']}
+  ]},
+  {n:'대시보드',sc:[
+    {n:'캐시 HIT',r:'billing',b:['b-user','b-react','b-fastapi','b-redis'],a:[{id:'a-ur',c:'#378ADD'},{id:'a-rf',c:'#378ADD'},{id:'a-fr',c:'#10B981'},{id:'a-ret',c:'#10B981',d:1}],s:['사용자 → 대시보드 클릭','React → GET /api/dashboard (Bearer JWT)','FastAPI billing router → Redis 캐시 조회','Cache HIT → 데이터 즉시 반환 (점선 ↩)','React 차트 렌더링 (비용 추이 · Top10)']},
+    {n:'캐시 MISS',r:'billing',b:['b-user','b-react','b-fastapi','b-redis','b-postgres','b-ncp'],a:[{id:'a-ur',c:'#378ADD'},{id:'a-rf',c:'#378ADD'},{id:'a-fr',c:'#10B981'},{id:'a-fp',c:'#639922'},{id:'a-fn',c:'#BA7517'}],s:['사용자 → 대시보드 클릭','React → GET /api/dashboard','FastAPI billing router → Redis 조회 → Cache MISS','asyncio.gather + Semaphore(3)로 NCP API 병렬 호출','PostgreSQL에서 VOD CMS 청구 조회','Redis 저장 (현재월 TTL 5분 / 이전월 24h)','React 차트 렌더링']},
+    {n:'월 변경',r:'billing',b:['b-user','b-react','b-fastapi','b-redis','b-postgres'],a:[{id:'a-ur',c:'#378ADD'},{id:'a-rf',c:'#378ADD'},{id:'a-fr',c:'#10B981'},{id:'a-fp',c:'#639922'}],s:['사용자 → 월 선택기 변경','React → GET /api/dashboard?month=YYYYMM','FastAPI billing router → 해당 월 Redis 캐시 조회','이전 월 → TTL 24h 캐시 확인','MISS 시 PostgreSQL 청구 조회 후 반환']}
+  ]},
+  {n:'계정 관리',sc:[
+    {n:'목록 조회',r:'accounts',b:['b-user','b-react','b-fastapi','b-postgres'],a:[{id:'a-ur',c:'#378ADD'},{id:'a-rf',c:'#378ADD'},{id:'a-fp',c:'#639922'}],s:['사용자 → 계정 관리 클릭','React → GET /api/accounts','FastAPI accounts router · JWT · 권한 확인','PostgreSQL accounts 조회','계정 목록 · 담당자 · 상태 반환']},
+    {n:'계정 등록',r:'accounts',b:['b-user','b-react','b-fastapi','b-postgres','b-ncp'],a:[{id:'a-ur',c:'#378ADD'},{id:'a-rf',c:'#378ADD'},{id:'a-fn',c:'#BA7517'},{id:'a-fp',c:'#639922'}],s:['사용자 → 계정 등록 폼 작성','React → POST /api/accounts','FastAPI accounts router → NCP API 테스트 호출 (API Key 유효성 검증)','검증 성공 → PostgreSQL INSERT','감사 로그 기록']},
+    {n:'계정 수정',r:'accounts',b:['b-user','b-react','b-fastapi','b-postgres'],a:[{id:'a-ur',c:'#378ADD'},{id:'a-rf',c:'#378ADD'},{id:'a-fp',c:'#639922'}],s:['사용자 → 계정 정보 수정','React → PATCH /api/accounts/{id}','FastAPI accounts router → PostgreSQL UPDATE','감사 로그 기록 (수행자 · 변경 내용 · 일시)']},
+    {n:'계정 비활성화',r:'accounts',b:['b-user','b-react','b-fastapi','b-postgres','b-redis'],a:[{id:'a-ur',c:'#378ADD'},{id:'a-rf',c:'#378ADD'},{id:'a-fp',c:'#639922'},{id:'a-fr',c:'#10B981'}],s:['사용자 → 계정 비활성화','React → PATCH /api/accounts/{id}/status','FastAPI accounts router → PostgreSQL UPDATE (status=inactive)','Redis 캐시 무효화 (해당 계정 키 삭제)','감사 로그 기록']},
+    {n:'리소스 탭 조회',r:'resources',b:['b-user','b-react','b-fastapi','b-redis','b-ncp'],a:[{id:'a-ur',c:'#378ADD'},{id:'a-rf',c:'#378ADD'},{id:'a-fr',c:'#10B981'},{id:'a-fn',c:'#BA7517'},{id:'a-ret',c:'#10B981',d:1}],s:['사용자 → 계정 상세 → 리소스 탭 클릭','React → GET /api/accounts/{id}/resources?type={type}','FastAPI resources router → Redis 캐시 조회','Cache MISS → NCP API 호출 (Semaphore 10)','Server · LB · Object Storage · NAS · DB 응답','Redis 저장 (TTL 5분) 후 반환']},
+    {n:'리소스 제어',r:'resources',b:['b-user','b-react','b-fastapi','b-postgres','b-ncp'],a:[{id:'a-ur',c:'#378ADD'},{id:'a-rf',c:'#378ADD'},{id:'a-fp',c:'#639922'},{id:'a-fn',c:'#BA7517'}],s:['사용자 → 계정 선택 → 작업 선택 (ACG 수정 · 서버 재시작 등)','React → POST /api/accounts/{id}/resources/actions','FastAPI resources router → PostgreSQL에서 해당 계정 API Key 조회','조회한 API Key로 NCP API 작업 호출 (쓰기 권한)','작업 완료 결과 반환','감사 로그 기록 (수행자 · 대상 계정 · 작업 내용)']},
+    {n:'담당자 배정',r:'accounts',b:['b-user','b-react','b-fastapi','b-postgres'],a:[{id:'a-ur',c:'#378ADD'},{id:'a-rf',c:'#378ADD'},{id:'a-fp',c:'#639922'}],s:['사용자 → 담당자 선택','React → PATCH /api/accounts/{id}/assignee','FastAPI accounts router → PostgreSQL UPDATE (assignee_id)','감사 로그 기록']}
+  ]},
+  {n:'VOD CMS 청구',sc:[
+    {n:'매핑 조회',r:'billing',b:['b-user','b-react','b-fastapi','b-postgres'],a:[{id:'a-ur',c:'#378ADD'},{id:'a-rf',c:'#378ADD'},{id:'a-fp',c:'#639922'}],s:['사용자 → VOD CMS 매핑 탭','React → GET /api/vod-cms/mappings','FastAPI billing router → PostgreSQL vod_cms_mapping 조회','리소스-고객사 매핑 목록 반환']},
+    {n:'매핑 등록/수정',r:'billing',b:['b-user','b-react','b-fastapi','b-postgres'],a:[{id:'a-ur',c:'#378ADD'},{id:'a-rf',c:'#378ADD'},{id:'a-fp',c:'#639922'}],s:['사용자 → 리소스-고객사 연결 설정','React → POST · PATCH /api/vod-cms/mappings','FastAPI billing router → PostgreSQL INSERT · UPDATE','감사 로그 기록']},
+    {n:'수동 업로드',r:'billing',b:['b-user','b-react','b-fastapi','b-postgres'],a:[{id:'a-ur',c:'#378ADD'},{id:'a-rf',c:'#378ADD'},{id:'a-fp',c:'#639922'}],s:['사용자 → 청구 CSV 파일 업로드','React → POST /api/billing/upload (multipart)','FastAPI billing router → 파일 파싱','vod_cms_mapping 기반 고객사별 분리 집계','PostgreSQL billing_data upsert']},
+    {n:'자동 동기화',r:'billing',b:['b-sched','b-fastapi','b-postgres','b-vod'],a:[{id:'a-sf',c:'#534AB7'},{id:'a-sv',c:'#BA7517'},{id:'a-fp',c:'#639922'}],s:['APScheduler → 매일 09:00 KST 트리거','FastAPI billing router 호출','Global Edge API → VOD CMS 청구 데이터 수신','vod_cms_mapping 기반 고객사별 분리 집계','PostgreSQL billing_data upsert','Redis 캐시 갱신']},
+    {n:'월별 청구 조회',r:'billing',b:['b-user','b-react','b-fastapi','b-postgres'],a:[{id:'a-ur',c:'#378ADD'},{id:'a-rf',c:'#378ADD'},{id:'a-fp',c:'#639922'}],s:['사용자 → 청구 탭 · 월 선택','React → GET /api/billing?month=YYYYMM&account_id={id}','FastAPI billing router → PostgreSQL 조건부 쿼리','월별 · 계정별 청구 데이터 반환']}
+  ]},
+  {n:'보고서',sc:[
+    {n:'PDF 생성',r:'reports',b:['b-user','b-react','b-fastapi','b-postgres'],a:[{id:'a-ur',c:'#378ADD'},{id:'a-rf',c:'#378ADD'},{id:'a-fp',c:'#639922'}],s:['사용자 → 보고서 생성 (PDF 선택)','React → POST /api/reports/generate?format=pdf','FastAPI reports router → PostgreSQL 청구 · 리소스 조회','ReportLab으로 차트 포함 PDF 생성','파일 스트림 다운로드 반환']},
+    {n:'DOCX 생성',r:'reports',b:['b-user','b-react','b-fastapi','b-postgres'],a:[{id:'a-ur',c:'#378ADD'},{id:'a-rf',c:'#378ADD'},{id:'a-fp',c:'#639922'}],s:['사용자 → 보고서 생성 (DOCX 선택)','React → POST /api/reports/generate?format=docx','FastAPI reports router → PostgreSQL 청구 · 리소스 조회','python-docx로 DOCX 파일 생성','파일 스트림 다운로드 반환']}
+  ]},
+  {n:'견적서',sc:[
+    {n:'견적서 생성',r:'reports',b:['b-user','b-react','b-fastapi','b-postgres'],a:[{id:'a-ur',c:'#378ADD'},{id:'a-rf',c:'#378ADD'},{id:'a-fp',c:'#639922'}],s:['사용자 → 견적 항목 입력','React → POST /api/quotations','FastAPI reports router → 항목 · 금액 계산 → 파일 생성','PostgreSQL quotation_history 저장','파일 다운로드 반환']},
+    {n:'이메일 발송',r:'reports',b:['b-user','b-react','b-fastapi','b-postgres','b-email'],a:[{id:'a-ur',c:'#378ADD'},{id:'a-rf',c:'#378ADD'},{id:'a-fp',c:'#639922'},{id:'a-fe',c:'#D4537E'}],s:['사용자 → 견적서 이메일 발송','React → POST /api/quotations/{id}/send','FastAPI reports router → PostgreSQL 견적서 조회','Email API 호출 (수신자 · 첨부파일)','발송 이력 저장 · 감사 로그']}
+  ]},
+  {n:'사용자 관리',sc:[
+    {n:'사용자 조회',r:'users',b:['b-user','b-react','b-fastapi','b-postgres'],a:[{id:'a-ur',c:'#378ADD'},{id:'a-rf',c:'#378ADD'},{id:'a-fp',c:'#639922'}],s:['사용자 → 사용자 관리 클릭 (관리자 권한)','React → GET /api/users','FastAPI users router · 관리자 권한 확인','PostgreSQL users 테이블 조회','사용자 목록 · 역할 · 상태 반환']},
+    {n:'사용자 초대',r:'users',b:['b-user','b-react','b-fastapi','b-postgres','b-email'],a:[{id:'a-ur',c:'#378ADD'},{id:'a-rf',c:'#378ADD'},{id:'a-fp',c:'#639922'},{id:'a-fe',c:'#D4537E'}],s:['사용자 → 이메일 입력 후 초대','React → POST /api/users/invite','FastAPI users router → 임시 토큰 생성 · PostgreSQL INSERT','Email API로 초대 이메일 발송','감사 로그 기록']},
+    {n:'역할 변경',r:'users',b:['b-user','b-react','b-fastapi','b-postgres'],a:[{id:'a-ur',c:'#378ADD'},{id:'a-rf',c:'#378ADD'},{id:'a-fp',c:'#639922'}],s:['사용자 → 역할 선택 변경','React → PATCH /api/users/{id}/role','FastAPI users router → PostgreSQL UPDATE (role)','감사 로그 기록 (권한 변경 · 수행자)']}
+  ]},
+  {n:'감사 로그',sc:[
+    {n:'전체 조회',r:'audit',b:['b-user','b-react','b-fastapi','b-postgres'],a:[{id:'a-ur',c:'#378ADD'},{id:'a-rf',c:'#378ADD'},{id:'a-fp',c:'#639922'}],s:['사용자 → 감사 로그 메뉴 클릭','React → GET /api/audit-logs','FastAPI audit router · JWT 검증','PostgreSQL audit_logs 전체 조회','수행자 · 일시 · 대상 · 결과 반환']},
+    {n:'필터 조회',r:'audit',b:['b-user','b-react','b-fastapi','b-postgres'],a:[{id:'a-ur',c:'#378ADD'},{id:'a-rf',c:'#378ADD'},{id:'a-fp',c:'#639922'}],s:['사용자 → 기간 · 계정 · 작업 유형 필터 설정','React → GET /api/audit-logs?account_id=&action=&from=&to=','FastAPI audit router → 조건부 SQL 쿼리 생성','PostgreSQL 필터링 조회','필터된 로그 목록 반환']}
+  ]}
+];
+
+let ci=0,si=0;
+function renderCats(){const el=document.getElementById('cats');el.innerHTML='';C.forEach((c,i)=>{const b=document.createElement('button');b.className='cat'+(i===ci?' on':'');b.textContent=c.n;b.onclick=()=>{ci=i;si=0;renderCats();renderScs();apply();};el.appendChild(b);});}
+function renderScs(){const el=document.getElementById('scs');el.innerHTML='';C[ci].sc.forEach((s,i)=>{const b=document.createElement('button');b.className='sc'+(i===si?' on':'');b.textContent=s.n;b.onclick=()=>{si=i;renderScs();apply();};el.appendChild(b);});}
+function apply(){
+  const s=C[ci].sc[si];
+  ALL_B.forEach(id=>{
+    const el=document.getElementById(id);if(!el)return;
+    const rect=el.querySelector('rect');const on=s.b.includes(id);
+    el.style.opacity=on?'1':'0.1';
+    rect.style.stroke=on?BC[id]:'#d1d5db';rect.style.strokeWidth=on?'2':'1';
+  });
+  ALL_A.forEach(id=>{
+    const el=document.getElementById(id);if(!el)return;
+    const active=s.a.find(a=>a.id===id);
+    if(active){el.style.stroke=active.c;el.style.strokeWidth='2.5';el.style.opacity='1';el.style.strokeDasharray=active.d?'5 3':'none';}
+    else{el.style.stroke='#d1d5db';el.style.strokeWidth='1';el.style.opacity='0.07';el.style.strokeDasharray=id==='a-ret'?'5 3':'none';}
+  });
+  ALL_R.forEach(r=>{
+    const dot=document.getElementById('rd-'+r);const txt=document.getElementById('r-'+r);const on=(r===s.r);
+    if(dot)dot.style.fill=on?'#534AB7':'#9ca3af';
+    if(txt){txt.style.fill=on?'#534AB7':'#9ca3af';txt.style.fontWeight=on?'600':'400';}
+  });
+  const info=RI[s.r];
+  document.getElementById('rlabel').textContent=info.label;
+  document.getElementById('rdesc').textContent=info.desc;
+  const stEl=document.getElementById('steps');stEl.innerHTML='';
+  s.s.forEach((st,i)=>{
+    const d=document.createElement('div');d.className='step';
+    d.innerHTML='<span class="sn">'+(i+1)+'</span><span>'+st+'</span>';
+    stEl.appendChild(d);
+  });
+}
+renderCats();renderScs();apply();
+</script>
+</body>
+</html>
